@@ -9,7 +9,7 @@ import base64
 from tkinter import messagebox
 import tkinter
 import urllib.request
-from PIL import Image
+from PIL import Image, ImageTk
 
 import os
 import requests
@@ -23,20 +23,21 @@ class Web:
         self.root.title("WikiCan")
         self.root.geometry("1300x800")
         self.root.resizable(0,0)
-        lblTitle=Label(self.root,bd=10,relief=RAISED,text="WikiCan: Sobre y para cada raza de can",fg="#169bff",bg="#aad4ff",font=("lucida sans unicode",30,"bold"))
-        lblTitle.pack(side=TOP,fill=X)
+        self.root.configure(background="#f6f6f2")
+        lblTitle=Label(self.root,bd=10,relief=RAISED,text="WikiCan: Sobre y para cada raza de can",fg="#388087",bg="#6fb3b8",font=("lucida sans unicode",30,"bold"))
+        lblTitle.pack(side=TOP,anchor=CENTER)
 
         # ========================DataFrame=================================
 
-        Dataframe=Frame(self.root,bd=5,relief=RIDGE,bg="#f3fbff")
+        Dataframe=Frame(self.root,bd=5,relief=RIDGE,bg="#badfe7")
         Dataframe.place(x=0,y=80,width=1300,height=550)
 
         # ======================ScrollDB====================================
 
-        WikiFrame=LabelFrame(Dataframe,relief=RIDGE,bd=5,bg="#f3fbff",font=("lucida sans unicode",12,"bold"),text="Razas de Perros")
+        WikiFrame=LabelFrame(Dataframe,relief=RIDGE,bd=5,bg="#badfe7",font=("lucida sans unicode",12,"bold"),text="Razas de Perros")
         WikiFrame.place(x=10,y=10,width=500,height=500)
         
-        canvasScroll=Canvas(WikiFrame,bg="cyan")
+        canvasScroll=Canvas(WikiFrame,bg="#f6f6f2")
         WikiFrame.update()
         self.setWiki(WikiFrame.winfo_width()-455)
         scroller=Scrollbar(WikiFrame,orient="vertical",command=canvasScroll.yview)
@@ -55,8 +56,15 @@ class Web:
         canvasScroll.pack(side="left",fill="both",expand=True)
         scroller.pack(side="right",fill="y")
 
-        infoFrame=LabelFrame(Dataframe,bd=5,relief=RIDGE,bg="#f3fbff",font=("lucida sans unicode",12,"bold"),text="Información")
-        infoFrame.place(x=550,y=10,width=710,height=500)
+        self.infoFrame=LabelFrame(Dataframe,bd=5,relief=RIDGE,bg="#badfe7",font=("lucida sans unicode",12,"bold"),text="Información")
+        self.infoFrame.place(x=550,y=10,width=710,height=500)
+        self.infoFrame.update()
+
+        # =====================================Info title=======================================
+
+
+       
+
 
         self.iB()
     
@@ -64,16 +72,32 @@ class Web:
 
     attributes=[]
     photos=[]
+    img=[]
+    paths=[]
     buttonsList=[]
     wikiSize=0
 
-    def show(self,name):
+    def getRid(self):
+        for widgets in self.infoFrame.winfo_children():
+            widgets.destroy()
+
+
+    def show(self,name,photo):
         conn=mysql.connector.connect(host="127.0.0.1",username="nicky",password="Hopeinthegalaxy",database="wikican")
         cursor=conn.cursor()
         select="select * from dogbreeds where titulo= %(title)s"
         cursor.execute(select,{'title':name})
         rows=cursor.fetchall()
-        print("SI!")
+        self.getRid()
+        TitAndEdit=Frame(self.infoFrame,relief=RIDGE,bg="blue",width=self.infoFrame.winfo_width())
+        TitAndEdit.pack(fill=X)
+        Title=Label(TitAndEdit,bg="red",text=rows[0][1])
+        Title.pack(side=LEFT,expand=True,fill=BOTH)
+        canvas = Canvas(TitAndEdit,width=100, height = 100,bg="#388087")  
+        canvas.pack(side=RIGHT)  
+        imgae=ImageTk.PhotoImage(Image.open(os.getcwd()+photo).resize((120,120)))
+        self.imga=imgae
+        canvas.create_image(0, 0, anchor=NW, image=imgae) 
 
     def setWiki(self,inte):
         self.wikiSize=inte
@@ -82,7 +106,7 @@ class Web:
     def iB(self):
         conn=mysql.connector.connect(host="127.0.0.1",username="nicky",password="Hopeinthegalaxy",database="wikican")
         cursor=conn.cursor()
-        cursor.execute("select titulo,foto from dogbreeds")
+        cursor.execute("select titulo,foto from dogbreeds order by titulo")
         rows=cursor.fetchall()
        
         for i in rows:
@@ -90,12 +114,23 @@ class Web:
             self.photos.append(i[1])
 
         FILE_PATH='images/'   
-      #  for i in range(len(self.photos)):
-       #     self.url_to_jpg(i,self.photos[i],FILE_PATH)
+        for i in range(len(self.photos)):
+          self.url_to_jpg(i,self.photos[i],FILE_PATH)
 
         for i in range(len(self.attributes)):
-            self.buttonsList.append(Button(self.scrollerFrame,width=self.wikiSize,height=5,bg="blue",compound=LEFT,text=self.attributes[i],font=("lucida sans unicode",12,"bold"),command=lambda c=i: self.show(self.buttonsList[c].cget("text"))))
-            self.buttonsList[i].pack() 
+           pathe="\images\image-{}.jpg".format(i)
+           self.paths.append(pathe)
+           frame=Frame(self.scrollerFrame,height=3,width=100,bg="#c2edce")
+           frame.pack()
+           canvas = Canvas(frame,width=100, height = 100,bg="#388087")  
+           canvas.pack(side=LEFT)  
+           self.img.append(ImageTk.PhotoImage(Image.open(os.getcwd()+pathe).resize((100,100))))
+           self.img[i]=self.img[i]
+           canvas.create_image(0, 0, anchor=NW, image=self.img[i]) 
+           frame.update()
+           self.buttonsList.append(Button(frame,width=self.wikiSize-10,height=3,bg="#6fb3b8",text=self.attributes[i],font=("lucida sans unicode",12,"bold"),command=lambda c=i: self.show(self.buttonsList[c].cget("text"),self.paths[c])))
+           self.buttonsList[i].pack(side=RIGHT)
+
         conn.commit()
         conn.close()
 
